@@ -15,6 +15,8 @@ async def get_post(*, topic:dict, post_url:str, username:str, apikey: str):
         if response.is_success:
             post = response.json()
             return (topic, post)
+        else:
+            response.raise_for_status()
 
 
 async def get_feed_topics(*, topics_url:str, username:str, apikey: str):
@@ -26,31 +28,32 @@ async def get_feed_topics(*, topics_url:str, username:str, apikey: str):
         if response.is_success:
             latest_feed = response.json()
             return latest_feed
+        else:
+            response.raise_for_status()
         
 
 async def get_topics_per_tag(*, topics_url:str, username:str, apikey: str):
 
-    feed_data = await get_feed_topics(topics_url=topics_url, username=username, apikey=apikey)
+    if feed_data := await get_feed_topics(topics_url=topics_url, username=username, apikey=apikey):
 
-    if feed_data:
+        # Let KeyErrors bubble up through the action runner handler.
+        all_topics = feed_data['topic_list']['topics']
 
-        async with httpx.AsyncClient() as client:
-            all_topics = feed_data['topic_list']['topics']
+        filtered_list = []
 
-            filtered_list = []
+        topics = [topic for topic in all_topics if 'er-notify' in topic.get('tags', [])]
 
-            topics = [topic for topic in all_topics if 'er-notify' in topic.get('tags', [])]
+        tasks = [get_post(topic=topic, post_url=urljoin(topics_url, f'/t/{topic["id"]}/posts.json'), username=username, apikey=apikey) for topic in topics]
+        results = await asyncio.gather(*tasks)
 
-            tasks = [get_post(topic=topic, post_url=urljoin(topics_url, f'/t/{topic["id"]}/posts.json'), username=username, apikey=apikey) for topic in topics]
-            results = await asyncio.gather(*tasks)
+        # Filter out topics without 'cooked' content
+        for topic, item in results:
 
-            for topic, item in results:
+            post = item['post_stream']['posts'][0]
+            if 'cooked' in post:
+                topic['cooked'] = post['cooked']
+                filtered_list.append(topic)
+    
+        feed_data['topic_list']['topics'] = filtered_list
 
-                post = item['post_stream']['posts'][0]
-                if 'cooked' in post:
-                    topic['cooked'] = post['cooked']
-                    filtered_list.append(topic)
-        
-            feed_data['topic_list']['topics'] = filtered_list
-
-            return feed_data
+        return feed_data
