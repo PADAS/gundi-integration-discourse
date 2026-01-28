@@ -11,7 +11,7 @@ aiosignal==1.3.2
 anyio==3.7.1
     # via
     #   fastapi
-    #   httpx
+    #   httpcore
     #   starlette
 async-timeout==5.0.1
     # via
@@ -85,7 +85,7 @@ google-resumable-media==2.7.2
     # via google-cloud-storage
 googleapis-common-protos==1.69.1
     # via google-api-core
-gundi-client-v2==2.4.1
+gundi-client-v2==2.4.0
     # via -r requirements-base.in
 gundi-core==1.11.2
     # via
@@ -95,10 +95,11 @@ h11==0.14.0
     # via
     #   httpcore
     #   uvicorn
-httpcore==1.0.8
+httpcore==0.17.3
     # via httpx
-httpx==0.28.1
+httpx==0.24.1
     # via
+    #   -r requirements.in
     #   gundi-client-v2
     #   respx
 idna==3.10
@@ -175,14 +176,17 @@ requests==2.32.3
     # via
     #   google-api-core
     #   google-cloud-storage
-respx==0.22.0
+respx==0.21.1
     # via gundi-client-v2
 rsa==4.9
     # via
     #   gcloud-aio-storage
     #   google-auth
 sniffio==1.3.1
-    # via anyio
+    # via
+    #   anyio
+    #   httpcore
+    #   httpx
 stamina==23.2.0
     # via -r requirements-base.in
 starlette==0.27.0
