@@ -175,7 +175,7 @@ requests==2.32.3
     # via
     #   google-api-core
     #   google-cloud-storage
-respx==0.21.1
+respx==0.22.0
     # via gundi-client-v2
 rsa==4.9
     # via
