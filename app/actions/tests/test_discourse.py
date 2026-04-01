@@ -16,7 +16,10 @@ async def test_happy_path(mock_response_topics, mock_response_posts):
         respx_mock.get(mock_url_post_1).respond(json=mock_response_posts, status_code=200)
 
         result = await get_topics_per_tag(
-            topics_url=mock_url_latest_json, username=mock_username, apikey=mock_apikey
+            topics_url=mock_url_latest_json,
+            username=mock_username,
+            apikey=mock_apikey,
+            include_tags=['er-notify']
         )
 
         # Assertions
@@ -35,7 +38,10 @@ async def test_uncooked_post(mock_response_topics, mock_response_post_without_co
         respx_mock.get(mock_url_post_1).respond(json=mock_response_post_without_cooked, status_code=200)
 
         result = await get_topics_per_tag(
-            topics_url=mock_url_latest_json, username=mock_username, apikey=mock_apikey
+            topics_url=mock_url_latest_json,
+            username=mock_username,
+            apikey=mock_apikey,
+            include_tags=['er-notify']
         )
 
         # Assertions
@@ -54,7 +60,10 @@ async def test_request_failed_on_feed(mock_response_topics, mock_response_post_w
 
         with pytest.raises(httpx.HTTPStatusError):
             await get_topics_per_tag(
-                topics_url=mock_url_latest_json, username=mock_username, apikey=mock_apikey
+                topics_url=mock_url_latest_json,
+                username=mock_username,
+                apikey=mock_apikey,
+                include_tags=['er-notify']
             )
 
 
@@ -72,5 +81,8 @@ async def test_request_failed_on_post(mock_response_topics, mock_response_post_w
 
         with pytest.raises(httpx.HTTPStatusError):
             await get_topics_per_tag(
-                topics_url=mock_url_latest_json, username=mock_username, apikey=mock_apikey
+                topics_url=mock_url_latest_json,
+                username=mock_username,
+                apikey=mock_apikey,
+                include_tags=['er-notify']
             )

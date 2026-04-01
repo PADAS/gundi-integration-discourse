@@ -44,7 +44,7 @@ async def get_feed_topics(*, topics_url:str, username:str, apikey: str):
             response.raise_for_status()
         
 
-async def get_topics_per_tag(*, topics_url: str, username: str, apikey: str):
+async def get_topics_per_tag(*, topics_url: str, username: str, apikey: str, include_tags: list[str]):
 
     if feed_data := await get_feed_topics(topics_url=topics_url, username=username, apikey=apikey):
 
@@ -53,7 +53,10 @@ async def get_topics_per_tag(*, topics_url: str, username: str, apikey: str):
 
         filtered_list = []
 
-        topics = [topic for topic in all_topics if 'er-notify' in topic.get('tags', [])]
+        topics = [
+            topic for topic in all_topics
+            if any(tag.get('slug') in include_tags for tag in topic.get('tags', []))
+        ]
 
         # Limit concurrent requests to avoid rate limiting
         semaphore = asyncio.Semaphore(2)
