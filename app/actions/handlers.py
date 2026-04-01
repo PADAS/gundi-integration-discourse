@@ -42,7 +42,12 @@ async def action_fetch_community_posts(integration:Integration, action_config: R
 
     auth_config = get_auth_config(integration)
 
-    topics = await get_topics_per_tag(topics_url=action_config.discourse_feed_url, username=auth_config.username, apikey=auth_config.apikey.get_secret_value())
+    topics = await get_topics_per_tag(
+        topics_url=action_config.discourse_feed_url,
+        username=auth_config.username,
+        apikey=auth_config.apikey.get_secret_value(),
+        include_tags=action_config.include_these_tags
+    )
 
     
     await store(bucket_name=action_config.storage_bucket, 
