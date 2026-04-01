@@ -1,22 +1,34 @@
 import asyncio
 
+import backoff
 import httpx
 from urllib.parse import urljoin
 
 
-async def get_post(*, topic:dict, post_url:str, username:str, apikey: str):
+def is_retryable_error(exception: httpx.HTTPStatusError) -> bool:
+    """Only retry on 429 (rate limit) or 5xx server errors."""
+    return exception.response.status_code == 429 or exception.response.status_code >= 500
 
-    headers = {'Api-key': apikey
-                , 'Api-Username': username
-                , 'Content-Type': 'application/json'}
+
+@backoff.on_exception(
+    backoff.expo,
+    httpx.HTTPStatusError,
+    max_tries=5,
+    giveup=lambda e: not is_retryable_error(e),
+    jitter=backoff.full_jitter,
+)
+async def get_post(*, topic: dict, post_url: str, username: str, apikey: str):
+    headers = {
+        'Api-key': apikey,
+        'Api-Username': username,
+        'Content-Type': 'application/json'
+    }
     
     async with httpx.AsyncClient() as client:
         response = await client.get(post_url, headers=headers)
-        if response.is_success:
-            post = response.json()
-            return (topic, post)
-        else:
-            response.raise_for_status()
+        response.raise_for_status()
+        post = response.json()
+        return (topic, post)
 
 
 async def get_feed_topics(*, topics_url:str, username:str, apikey: str):
@@ -32,7 +44,7 @@ async def get_feed_topics(*, topics_url:str, username:str, apikey: str):
             response.raise_for_status()
         
 
-async def get_topics_per_tag(*, topics_url:str, username:str, apikey: str):
+async def get_topics_per_tag(*, topics_url: str, username: str, apikey: str):
 
     if feed_data := await get_feed_topics(topics_url=topics_url, username=username, apikey=apikey):
 
@@ -43,7 +55,22 @@ async def get_topics_per_tag(*, topics_url:str, username:str, apikey: str):
 
         topics = [topic for topic in all_topics if 'er-notify' in topic.get('tags', [])]
 
-        tasks = [get_post(topic=topic, post_url=urljoin(topics_url, f'/t/{topic["id"]}/posts.json'), username=username, apikey=apikey) for topic in topics]
+        # Limit concurrent requests to avoid rate limiting
+        semaphore = asyncio.Semaphore(2)
+
+        async def limited_get_post(**kwargs):
+            async with semaphore:
+                return await get_post(**kwargs)
+
+        tasks = [
+            limited_get_post(
+                topic=topic,
+                post_url=urljoin(topics_url, f'/t/{topic["id"]}/posts.json'),
+                username=username,
+                apikey=apikey
+            )
+            for topic in topics
+        ]
         results = await asyncio.gather(*tasks)
 
         # Filter out topics without 'cooked' content
